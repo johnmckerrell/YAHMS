@@ -1,0 +1,26 @@
+YAHMS
+-----
+
+Yet Another Home Management System
+
+John McKerrell 2011
+
+YAHMS is distributed under the terms of the Artistic License 2.0. For more
+details, see the full text of the license in the file LICENSE.
+
+This arduino code is supposed to give a generic base to build hardware
+on and have it controlled by configuration on a web site. The website
+will provide "control blocks" specifying when digital outputs should
+be turned on and will also specify Analog inputs that should be
+sampled and sent back to the server. The server will also specify
+pins that are connected to an Xbee module, if these pins are present
+and the Arduino receives samples from other Xbee modules then these
+will also be sent back to the server.
+
+Though this code is quite functional it should still be considered an
+early release. It requires the very latest Ethernet libraries
+available from amcewen on github:
+    https://github.com/amcewen/Arduino
+
+It also requires the HttpClient and Flash libraries which are
+available separately.
