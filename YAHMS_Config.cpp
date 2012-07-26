@@ -38,15 +38,15 @@ FLASH_STRING(PROG_ON,"ON");
 FLASH_STRING(PROG_OFF,"OFF");
 FLASH_STRING(DOWNLOADING_CONFIG_FROM,"Downloading config from http://");
 FLASH_STRING(HTTP_REQUEST_FAILED,"HTTP request failed.  Reported:");
-FLASH_STRING(HTTP_NOT_CONNECTED,"HTTP request couldn't connect");
-FLASH_STRING(VALID_EEPROM_CONTENTS,"Valid eeprom contents");
+FLASH_STRING(HTTP_NOT_CONNECTED,"HTTP request couldn't connect\n");
+FLASH_STRING(VALID_EEPROM_CONTENTS,"Valid eeprom contents\n");
 FLASH_STRING(CONFIG_SIZE_IS,"Config size is ");
 FLASH_STRING(XBEE_PINS_CHANGED_TO,"Xbee pins changed to RX=");
 FLASH_STRING(XBEE_PINS_TX," TX=");
 FLASH_STRING(ANALOG_PINS_ARE,"Analog pins are: ");
 FLASH_STRING(INPUT_PINS_ARE,"Input pins are: ");
 FLASH_STRING(OUTPUT_PINS_ARE,"Output pins are: ");
-FLASH_STRING(CONTROL_BLOCKS,"Control Blocks:");
+FLASH_STRING(CONTROL_BLOCKS,"Control Blocks:\n");
 #endif
 
 ControlBlock *firstControlBlock = NULL, *lastControlBlock = NULL;
@@ -65,20 +65,25 @@ byte settings[NUM_SETTINGS];
 void LogControlBlock(ControlBlock *currentControlBlock) {
   #ifdef LOGGING
   Serial.print(currentControlBlock->minute,DEC);
-  Serial.print(BLANK);
+  BLANK.print(Serial);
   Serial.print(currentControlBlock->hour,DEC);
-  Serial.print(BLANK);
+  BLANK.print(Serial);
   Serial.print(currentControlBlock->day,DEC);
-  Serial.print(BLANK);
+  BLANK.print(Serial);
   Serial.print(currentControlBlock->month,DEC);
-  Serial.print(BLANK);
+  BLANK.print(Serial);
   Serial.print(currentControlBlock->weekday,DEC);
-  Serial.print(BLANK);
+  BLANK.print(Serial);
   Serial.print(currentControlBlock->len,DEC);
-  Serial.print(BLANK);
+  BLANK.print(Serial);
   Serial.print(currentControlBlock->pin,DEC);
-  Serial.print(BLANK);
-  Serial.println(currentControlBlock->state?PROG_ON:PROG_OFF);
+  BLANK.print(Serial);
+  if (currentControlBlock->state) {
+    PROG_ON.print(Serial);
+  } else {
+    PROG_OFF.print(Serial);
+  }
+  Serial.println();
   #endif
 }
 
@@ -118,7 +123,7 @@ void CheckAndUpdateConfig() {
       eepromRecent = false;
     }
     // Download the config file from http://bubblino.com/<MAC Address>
-    Client c;
+    EthernetClient c;
     HttpClient http(c);
     if (!eepromRecent) {
       char configPath[31] = "/api/c/";
@@ -144,14 +149,13 @@ void CheckAndUpdateConfig() {
       configPath[30] = '\0';
   
       #ifdef LOGGING
-      Serial.print(DOWNLOADING_CONFIG_FROM);
+      DOWNLOADING_CONFIG_FROM.print(Serial);
       Serial.print(YAHMS_SERVER);
       Serial.println(configPath);
       #endif
-      if (http.get(YAHMS_SERVER, 80, configPath, USERAGENT, NULL) == 0)
+      if (http.get(YAHMS_SERVER, 80, configPath, USERAGENT) == 0)
       {
         // Request sent okay
-        http.finishRequest();
         
         // Look for the response, and specifically pull out the content-length header
         unsigned long timeoutStart = millis();
@@ -234,7 +238,7 @@ void CheckAndUpdateConfig() {
         {
           // This isn't a successful response
   #ifdef LOGGING
-          Serial.println(HTTP_REQUEST_FAILED);
+          HTTP_REQUEST_FAILED.print(Serial);
           Serial.println(err);
   #endif
         }
@@ -246,14 +250,14 @@ void CheckAndUpdateConfig() {
       else
       {
         // else hope that the last config was okay
-        Serial.println(HTTP_NOT_CONNECTED);
+        HTTP_NOT_CONNECTED.print(Serial);
       }
   #endif
     }
     if (eepromValid) {
       configTime = now();
       #ifdef LOGGING
-      Serial.println(VALID_EEPROM_CONTENTS);
+      VALID_EEPROM_CONTENTS.print(Serial);
       #endif
       configPresent = true;
       unsigned long int configSize= 0;
@@ -261,7 +265,7 @@ void CheckAndUpdateConfig() {
         configSize = (256 * configSize) + EEPROM.read(i);
       }
       #ifdef LOGGING
-      Serial.print(CONFIG_SIZE_IS);
+      CONFIG_SIZE_IS.print(Serial);
       Serial.println(configSize);
       #endif
       ControlBlock *currentControlBlock = NULL;
@@ -270,6 +274,7 @@ void CheckAndUpdateConfig() {
         firstControlBlock = firstControlBlock->next;
         free(currentControlBlock);
       }
+      lastControlBlock = NULL;
       
       // Now parse the EEPROM contents line by line
       int i = 0;
@@ -302,12 +307,6 @@ void CheckAndUpdateConfig() {
           intIndex = 0;
         } else if (c == '*' && lineMode == 'C') {
             if (intIndex < sizeof(controlBlockValues)) {
-              /*
-              Serial.print("Storing controlBlockValues[");
-              Serial.print(intIndex);
-              Serial.print("]=");
-              Serial.println(-1);
-              */
               controlBlockValues[intIndex] = -1;
             }
             intVal = -1;
@@ -317,10 +316,6 @@ void CheckAndUpdateConfig() {
             case 'S':
               if (intIndex < NUM_SETTINGS) {
                 settings[intIndex] = intVal;
-                Serial.print("Storing setting ");
-                Serial.print(intIndex);
-                Serial.print(" as ");
-                Serial.println(intVal);
               }
               break;
             case 'A':
@@ -430,36 +425,37 @@ void CheckAndUpdateConfig() {
       // We don't need to check whether we're part-way through a number
       // here because we add a new-line above
       
+
       if (xbeeChanged) {
         #ifdef LOGGING
-        Serial.print(XBEE_PINS_CHANGED_TO);
+        XBEE_PINS_CHANGED_TO.print(Serial);
         Serial.print(xbeeRX,DEC);
-        Serial.print(XBEE_PINS_TX);
+        XBEE_PINS_TX.print(Serial);
         Serial.println(xbeeTX,DEC);
         #endif
 
-        NewSoftSerial *serial = new NewSoftSerial(xbeeRX,xbeeTX);        
+        SoftwareSerial *serial = new SoftwareSerial(xbeeRX,xbeeTX);        
         if (xbeeSerial)
           delete xbeeSerial;
         xbeeSerial = serial;
-        xbee.setSerial(serial);
+        xbee.setSerial(*serial);
         xbee.begin(9600);
       }
       #ifdef LOGGING
-      Serial.print(ANALOG_PINS_ARE);
+      ANALOG_PINS_ARE.print(Serial);
       for(int i = 0; i < NUM_ANALOG_PINS; ++i) {
         if (i > 0) {
-          Serial.print(COMMA);
+          COMMA.print(Serial);
         }
         Serial.print(analogPins[i],DEC);
       }
       Serial.println();
-      Serial.print(INPUT_PINS_ARE);
+      INPUT_PINS_ARE.print(Serial);
       #endif
       for(int i = 0; i < NUM_INPUT_PINS; ++i) {
         #ifdef LOGGING
         if (i > 0) {
-          Serial.print(COMMA);
+          COMMA.print(Serial);
         }
         Serial.print(inputPins[i],DEC);
         #endif
@@ -469,12 +465,12 @@ void CheckAndUpdateConfig() {
       }
       #ifdef LOGGING
       Serial.println();
-      Serial.print(OUTPUT_PINS_ARE);
+      OUTPUT_PINS_ARE.print(Serial);
       #endif
       for(int i = 0; i < NUM_OUTPUT_PINS; ++i) {
         #ifdef LOGGING
         if (i > 0) {
-          Serial.print(COMMA);
+          COMMA.print(Serial);
         }
         Serial.print(outputPins[i],DEC);
         #endif
@@ -489,7 +485,7 @@ void CheckAndUpdateConfig() {
       
       currentControlBlock = firstControlBlock;
       #ifdef LOGGING
-      Serial.println(CONTROL_BLOCKS);
+      CONTROL_BLOCKS.print(Serial);
       while (currentControlBlock) {
         LogControlBlock(currentControlBlock);
         currentControlBlock = currentControlBlock->next;

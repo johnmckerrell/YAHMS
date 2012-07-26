@@ -34,11 +34,11 @@ FLASH_STRING(HAVE_XBEE_PACKET_FROM_NODE,"Have xbee packet from node ");
 FLASH_STRING(XBEE_SAMPLES_FOR_NODE,"Xbee Samples for node ");
 FLASH_STRING(PROG_PIN," pin ");
 FLASH_STRING(SMOOTHED_OUT_TO," smoothed out to ");
-FLASH_STRING(NO_XBEE_PACKET,"No xbee packet");
+FLASH_STRING(NO_XBEE_PACKET,"No xbee packet\n");
 FLASH_STRING(PROG_SAMPLE,"Sample ");
 FLASH_STRING(PROG_EQUALS," = ");
 FLASH_STRING(SUBMITTING_SAMPLES_TO,"Submitting samples to http://");
-FLASH_STRING(HTTP_SUBMIT_CONNECTION_FAILED,"HTTP Connection Failed");
+FLASH_STRING(HTTP_SUBMIT_CONNECTION_FAILED,"HTTP Connection Failed\n");
 FLASH_STRING(HTTP_SUBMIT_REQUEST_FAILED,"HTTP Request Failed with: ");
 #endif
 FLASH_STRING(CONTENT_LENGTH,"Content-Length: ");
@@ -106,7 +106,7 @@ void TakeSamples() {
 
       byte xbeeNode = ioSample.getRemoteAddress16();
       #ifdef LOGGING
-      Serial.print(HAVE_XBEE_PACKET_FROM_NODE);
+      HAVE_XBEE_PACKET_FROM_NODE.print(Serial);
       Serial.println(xbeeNode,DEC);
       #endif
       if (xbeeNode < MAX_XBEE_NODES) {
@@ -119,11 +119,11 @@ void TakeSamples() {
             }
             xbeeSamples[xbeeNode][i] = smoothSamples(samples,sampleSize);
             #ifdef LOGGING
-            Serial.print(XBEE_SAMPLES_FOR_NODE);
+            XBEE_SAMPLES_FOR_NODE.print(Serial);
             Serial.print(xbeeNode,DEC);
-            Serial.print(PROG_PIN);
+            PROG_PIN.print(Serial);
             Serial.print(i);
-            Serial.print(SMOOTHED_OUT_TO);
+            SMOOTHED_OUT_TO.print(Serial);
             Serial.println(xbeeSamples[xbeeNode][i]);
             #endif
           } else if (ioSample.isDigitalEnabled(i)) {
@@ -138,7 +138,7 @@ void TakeSamples() {
     }
   } else {
     #ifdef LOGGING
-    Serial.println(NO_XBEE_PACKET);
+    NO_XBEE_PACKET.print(Serial);
     #endif
   }
 }
@@ -162,9 +162,9 @@ void CheckAndSubmitSamples() {
     }
     submitSamples[i] = smoothSamples(analogSamples[i], NUM_SAMPLES);
     #ifdef LOGGING
-    Serial.print(PROG_SAMPLE);
+    PROG_SAMPLE.print(Serial);
     Serial.print(i);
-    Serial.print(PROG_EQUALS);
+    PROG_EQUALS.print(Serial);
     Serial.println(submitSamples[i]);
     #endif
     if (submitSamples[i] != -1) {
@@ -184,7 +184,7 @@ void CheckAndSubmitSamples() {
   }
 
   
-  Client c;
+  EthernetClient c;
   HttpClient http(c);
 
   char configPath[22] = "/api/s/";
@@ -203,21 +203,21 @@ void CheckAndSubmitSamples() {
   configPath[21] = '\0';
 
   #ifdef LOGGING
-  Serial.print(SUBMITTING_SAMPLES_TO);
+  SUBMITTING_SAMPLES_TO.print(Serial);
   Serial.print(YAHMS_SERVER);
   Serial.println(configPath);
   #endif
-  if (http.post(YAHMS_SERVER, 80, configPath, USERAGENT, NULL) == 0)
+  if (http.post(YAHMS_SERVER, 80, configPath, USERAGENT) == 0)
   {
     // Request sent okay
     #ifdef LOGGING
-    Serial.print(CONTENT_LENGTH);
+    CONTENT_LENGTH.print(Serial);
     Serial.println(contentLength);
     #endif
-    http.print(CONTENT_LENGTH);
+    CONTENT_LENGTH.print(http);
     http.println(contentLength);
-    http.println(SAMPLE_CONTENT_TYPE);
-    http.finishRequest();
+    SAMPLE_CONTENT_TYPE.print(http);
+    http.println();
     
     for (int i = 0; i < NUM_ANALOG_PINS; ++i) {
       if (submitSamples[i] != -1) {
@@ -260,7 +260,7 @@ void CheckAndSubmitSamples() {
       }
     } else {
       #ifdef LOGGING
-      Serial.print(HTTP_SUBMIT_REQUEST_FAILED);
+      HTTP_SUBMIT_REQUEST_FAILED.print(Serial);
       Serial.println(err);
       #endif
 
@@ -269,7 +269,7 @@ void CheckAndSubmitSamples() {
     c.stop();
   } else {
     #ifdef LOGGING
-    Serial.println(HTTP_SUBMIT_CONNECTION_FAILED);
+    HTTP_SUBMIT_CONNECTION_FAILED.print(Serial);
     #endif
   }
 

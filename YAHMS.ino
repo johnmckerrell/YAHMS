@@ -35,7 +35,7 @@ Check the last time we sent back a sample, if it’s been too long then send the
 #include <Udp.h>
 #include <util.h>
 
-#include <NewSoftSerial.h>
+#include <SoftwareSerial.h>
 #include <XBee.h>
 
 #include <SPI.h>
@@ -55,30 +55,17 @@ Check the last time we sent back a sample, if it’s been too long then send the
 #include "YAHMS_Sampler.h"
 #include "YAHMS_Controller.h"
 
-void * operator new(size_t size);
-void operator delete(void * ptr);
-
-void * operator new(size_t size)
-{
-  return malloc(size);
-}
-
-void operator delete(void * ptr)
-{
-  free(ptr);
-}
-
 #ifdef LOGGING
 
-FLASH_STRING(CONFIGURING_ETHERNET,"Configuring ethernet");
-FLASH_STRING(CONFIGURING_ETHERNET_FAILED,"Failed to configure Ethernet using DHCP");
-FLASH_STRING(SYNCING_TIME,"Syncing time");
-FLASH_STRING(SETUP_SAMPLER,"Setup sampler");
-FLASH_STRING(SETUP_CONTROLLER,"Setup controller");
-FLASH_STRING(CHECK_FOR_CONFIG,"Check for config");
-FLASH_STRING(TAKE_SAMPLES,"TakeSamples");
-FLASH_STRING(UPDATE_OUTPUT_PINS,"Update output pins");
-FLASH_STRING(CHECK_AND_SUBMIT_SAMPLES,"CheckAndSubmitSamples");
+FLASH_STRING(CONFIGURING_ETHERNET,"\n\n!!!\n\nConfiguring ethernet\n");
+FLASH_STRING(CONFIGURING_ETHERNET_FAILED,"Failed to configure Ethernet using DHCP\n");
+FLASH_STRING(SYNCING_TIME,"Syncing time\n");
+FLASH_STRING(SETUP_SAMPLER,"Setup sampler\n");
+FLASH_STRING(SETUP_CONTROLLER,"Setup controller\n");
+FLASH_STRING(CHECK_FOR_CONFIG,"Check for config\n");
+FLASH_STRING(TAKE_SAMPLES,"TakeSamples\n");
+FLASH_STRING(UPDATE_OUTPUT_PINS,"Update output pins\n");
+FLASH_STRING(CHECK_AND_SUBMIT_SAMPLES,"CheckAndSubmitSamples\n");
 #endif
 
 // Enter a MAC address for your controller below.
@@ -93,7 +80,7 @@ extern char xbeeRX;
 extern char xbeeTX;
 
 XBee xbee = XBee();
-NewSoftSerial *xbeeSerial = NULL;
+SoftwareSerial *xbeeSerial = NULL;
 
 void setup() {
   Serial.begin(9600);
@@ -107,26 +94,26 @@ void setup() {
   }
   // start Ethernet and UDP
   #ifdef LOGGING
-    CONFIGURING_ETHERNET.println(Serial);
+    CONFIGURING_ETHERNET.print(Serial);
   #endif
   if (Ethernet.begin(mac) == 0) {
     #ifdef LOGGING
-    CONFIGURING_ETHERNET_FAILED.println(Serial);
+    CONFIGURING_ETHERNET_FAILED.print(Serial);
     #endif
     // no point in carrying on, so do nothing forevermore:
     for(;;)
       ;
   }
   #ifdef LOGGING
-  SYNCING_TIME.println(Serial);
+  SYNCING_TIME.print(Serial);
   #endif
   SyncTime_setup();
   #ifdef LOGGING
-  SETUP_SAMPLER.println(Serial);
+  SETUP_SAMPLER.print(Serial);
   #endif
   SetupSampler();
   #ifdef LOGGING
-  SETUP_CONTROLLER.println(Serial);
+  SETUP_CONTROLLER.print(Serial);
   #endif
   SetupController();
 }
@@ -148,7 +135,7 @@ void loop() {
 		Not sure about advance blocks - perhaps also an On block, these and +1 hour could be a special type that you only have one of, so a later +1 or advance discards the previous
   */
   #ifdef LOGGING
-  CHECK_FOR_CONFIG.println(Serial);
+  CHECK_FOR_CONFIG.print(Serial);
   #endif
   CheckAndUpdateConfig();
 /*
@@ -157,7 +144,7 @@ Read in all of the local samples
 Check the Xbee for any samples
 */
   #ifdef LOGGING
-  TAKE_SAMPLES.println(Serial);
+  TAKE_SAMPLES.print(Serial);
   #endif
   TakeSamples();
 /*
@@ -165,14 +152,14 @@ Check the Xbee for any samples
 Iterate over outputs, check whether we’re inside an On block, update pin status accordingly
 */
   #ifdef LOGGING
-  UPDATE_OUTPUT_PINS.println(Serial);
+  UPDATE_OUTPUT_PINS.print(Serial);
   #endif
   CheckAndUpdateState();
 /*
 Check the last time we sent back a sample, if it’s been too long then send the latest values, don’t send a sample that’s too old
 */
   #ifdef LOGGING
-  CHECK_AND_SUBMIT_SAMPLES.println(Serial);
+  CHECK_AND_SUBMIT_SAMPLES.print(Serial);
   #endif
   CheckAndSubmitSamples();
   /*

@@ -36,7 +36,7 @@ IPAddress timeServer(91,189,94,4); // time.ubuntu.com NTP server
 byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets 
 
 // A UDP instance to let us send and receive packets over UDP
-UDP Udp;
+EthernetUDP Udp;
 
 void SyncTime_setup() 
 {

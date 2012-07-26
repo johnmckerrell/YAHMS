@@ -5,7 +5,7 @@
 #include <Flash.h>
 
 #ifdef LOGGING
-FLASH_STRING(ACTIVE_CONTROL_BLOCK,"Active Control Block");
+FLASH_STRING(ACTIVE_CONTROL_BLOCK,"Active Control Block\n");
 FLASH_STRING(SETTING_OUTPUTPINS,"Setting outputPins[");
 FLASH_STRING(OUTPUT_PINS_SEP1,"] (");
 FLASH_STRING(OUTPUT_PINS_SEP2,") to ");
@@ -61,14 +61,14 @@ void CheckAndUpdateState() {
           if (mins <= minsSinceMidnight && (mins+currentControlBlock->len) > minsSinceMidnight) {
             pinState = currentControlBlock->state ? 1 : 0;
             #ifdef LOGGING
-            Serial.println(ACTIVE_CONTROL_BLOCK);
+            ACTIVE_CONTROL_BLOCK.print(Serial);
             LogControlBlock(currentControlBlock);
             #endif
           }
         } else if (currentControlBlock->hour == hour(t)) {
           pinState = currentControlBlock->state ? 1 : 0;
           #ifdef LOGGING
-          Serial.println(ACTIVE_CONTROL_BLOCK);
+          ACTIVE_CONTROL_BLOCK.print(Serial);
           LogControlBlock(currentControlBlock);
           #endif
         }
@@ -76,7 +76,7 @@ void CheckAndUpdateState() {
         if (currentControlBlock->minute <= minute(t) && (currentControlBlock->minute + currentControlBlock->len) > minute(t)) {
           pinState = currentControlBlock->state ? 1 : 0;
           #ifdef LOGGING
-          Serial.println(ACTIVE_CONTROL_BLOCK);
+          ACTIVE_CONTROL_BLOCK.print(Serial);
           LogControlBlock(currentControlBlock);
           #endif
         }
@@ -95,12 +95,17 @@ void CheckAndUpdateState() {
       pinState = 0;
     if (pinState != currentPinState[i]) {
       #ifdef LOGGING
-      Serial.print(SETTING_OUTPUTPINS);
+      SETTING_OUTPUTPINS.print(Serial);
       Serial.print(i);
-      Serial.print(OUTPUT_PINS_SEP1);
+      OUTPUT_PINS_SEP1.print(Serial);
       Serial.print(outputPins[i],DEC);
-      Serial.print(OUTPUT_PINS_SEP2);
-      Serial.println(pinState ? PROG_HIGH : PROG_LOW);
+      OUTPUT_PINS_SEP2.print(Serial);
+      if (pinState) {
+        PROG_HIGH.print(Serial);
+      } else {
+        PROG_LOW.print(Serial);
+      }
+      Serial.println();
       #endif
       digitalWrite(outputPins[i], pinState ? HIGH : LOW);
       currentPinState[i] = pinState;

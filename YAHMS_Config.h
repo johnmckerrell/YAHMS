@@ -30,7 +30,7 @@ Check the last time we sent back a sample, if it’s been too long then send the
 #include <Ethernet.h>
 #include <IPAddress.h>
 
-#include <NewSoftSerial.h>
+#include <SoftwareSerial.h>
 #include <XBee.h>
 
 #include <Time.h>
@@ -44,7 +44,7 @@ Check the last time we sent back a sample, if it’s been too long then send the
 
 extern byte mac[];
 extern XBee xbee;
-extern NewSoftSerial *xbeeSerial;
+extern SoftwareSerial *xbeeSerial;
 extern char outputPins[];
 extern byte settings[];
 
