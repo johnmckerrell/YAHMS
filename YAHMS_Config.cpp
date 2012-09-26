@@ -49,8 +49,6 @@ FLASH_STRING(OUTPUT_PINS_ARE,"Output pins are: ");
 FLASH_STRING(CONTROL_BLOCKS,"Control Blocks:\n");
 #endif
 
-ControlBlock *firstControlBlock = NULL, *lastControlBlock = NULL;
-
 boolean configPresent = false;
 unsigned long int configTime = 0;
 
@@ -61,31 +59,6 @@ char analogPins[NUM_ANALOG_PINS];
 char xbeeRX = -1, xbeeTX = -1;
 
 byte settings[NUM_SETTINGS];
-
-void LogControlBlock(ControlBlock *currentControlBlock) {
-  #ifdef LOGGING
-  Serial.print(currentControlBlock->minute,DEC);
-  BLANK.print(Serial);
-  Serial.print(currentControlBlock->hour,DEC);
-  BLANK.print(Serial);
-  Serial.print(currentControlBlock->day,DEC);
-  BLANK.print(Serial);
-  Serial.print(currentControlBlock->month,DEC);
-  BLANK.print(Serial);
-  Serial.print(currentControlBlock->weekday,DEC);
-  BLANK.print(Serial);
-  Serial.print(currentControlBlock->len,DEC);
-  BLANK.print(Serial);
-  Serial.print(currentControlBlock->pin,DEC);
-  BLANK.print(Serial);
-  if (currentControlBlock->state) {
-    PROG_ON.print(Serial);
-  } else {
-    PROG_OFF.print(Serial);
-  }
-  Serial.println();
-  #endif
-}
 
 void CheckAndUpdateConfig() {
   /*
@@ -268,20 +241,10 @@ void CheckAndUpdateConfig() {
       CONFIG_SIZE_IS.print(Serial);
       Serial.println(configSize);
       #endif
-      ControlBlock *currentControlBlock = NULL;
-      while (firstControlBlock) {
-        currentControlBlock = firstControlBlock;
-        firstControlBlock = firstControlBlock->next;
-        free(currentControlBlock);
-      }
-      lastControlBlock = NULL;
       
       // Now parse the EEPROM contents line by line
       int i = 0;
       boolean xbeeChanged = false;
-      currentControlBlock = NULL;
-      int controlBlockValues[8];
-      boolean startedControlBlock = false;
       int intVal = -1;
       int intIndex = 0;
       byte c = '\0';
@@ -291,11 +254,6 @@ void CheckAndUpdateConfig() {
         if (i < 13) {
           // Ignore it
         } else if (isdigit(c)) {
-          if (lineMode == 'C' && !startedControlBlock) {
-            memset(controlBlockValues,-1,sizeof(controlBlockValues));
-            startedControlBlock = true;
-            //Serial.println("Initialising controlBlockValues");
-          }
           if (intVal == -1)
             intVal = 0;
           intVal = (10*intVal) + (c - '0');
@@ -306,9 +264,7 @@ void CheckAndUpdateConfig() {
           intVal = -1;
           intIndex = 0;
         } else if (c == '*' && lineMode == 'C') {
-            if (intIndex < sizeof(controlBlockValues)) {
-              controlBlockValues[intIndex] = -1;
-            }
+            // Not important right now, control block specific
             intVal = -1;
             ++intIndex;
         } else if (intVal != -1) {
@@ -347,15 +303,7 @@ void CheckAndUpdateConfig() {
               }
               break;
             case 'C':
-              if (intIndex < sizeof(controlBlockValues)) {
-                /*
-                Serial.print("Storing controlBlockValues[");
-                Serial.print(intIndex);
-                Serial.print("]=");
-                Serial.println(intVal);
-                */
-                controlBlockValues[intIndex] = intVal;
-              }
+              // Ignore control blocks for now
               break;
           }
           intVal = -1;
@@ -384,41 +332,10 @@ void CheckAndUpdateConfig() {
               }
               break;
             case 'C':
-              // Check that the length of the time block is greater than zero
-              // and that the pin that's being turned on is zero or more
-              if (controlBlockValues[5] > 0 && controlBlockValues[6] >= 0) {
-                currentControlBlock = (ControlBlock*)malloc(sizeof(ControlBlock));
-                // Copy the integer values into a ControlBlock
-                currentControlBlock->minute = controlBlockValues[0];                
-                currentControlBlock->hour = controlBlockValues[1];                
-                currentControlBlock->day = controlBlockValues[2];                
-                currentControlBlock->month = controlBlockValues[3];                
-                currentControlBlock->weekday = controlBlockValues[4];                
-                currentControlBlock->len = controlBlockValues[5];                
-                currentControlBlock->pin = controlBlockValues[6];    
-                currentControlBlock->state = controlBlockValues[7];            
-                if (lastControlBlock) {
-                  lastControlBlock->next = currentControlBlock;
-                }
-                currentControlBlock->next = NULL;
-                lastControlBlock = currentControlBlock;
-                if (!firstControlBlock) {
-                  firstControlBlock = currentControlBlock;
-                }
-              } else {
-                /*
-                Serial.println("Not storing controlBlockValues");
-                Serial.print("5=");
-                Serial.println(controlBlockValues[5]);
-                Serial.print("6=");
-                Serial.println(controlBlockValues[6]);
-                */
-                //Serial.println(controlBlockValues);
-              }
+              // Ignore control blocks for now
               break;
           }
           lineMode = '\0';
-          startedControlBlock = false;
         }
         ++i;
       }
@@ -483,14 +400,6 @@ void CheckAndUpdateConfig() {
       Serial.println();
       #endif
       
-      currentControlBlock = firstControlBlock;
-      #ifdef LOGGING
-      CONTROL_BLOCKS.print(Serial);
-      while (currentControlBlock) {
-        LogControlBlock(currentControlBlock);
-        currentControlBlock = currentControlBlock->next;
-      }
-      #endif
     }
   }
   

@@ -47,27 +47,6 @@ extern XBee xbee;
 extern SoftwareSerial *xbeeSerial;
 extern char outputPins[];
 extern byte settings[];
+extern boolean configPresent;
 
-#ifndef YAHMS_CONFIG_H
-#define YAHMS_CONFIG_H
-
-struct ControlBlock {
-  char minute;
-  char hour;
-  char day;
-  char month;
-  char weekday;
-  int len;
-  char pin;
-  boolean state;
-  struct ControlBlock *next;
-};
-
-typedef struct ControlBlock ControlBlock;
-
-#endif
-
-extern ControlBlock *firstControlBlock;
-
-void LogControlBlock(ControlBlock *currentControlBlock);
 void CheckAndUpdateConfig();

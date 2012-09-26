@@ -1,5 +1,5 @@
 #define YAHMS_API_VERSION 1
-#define USERAGENT "YAHMS/0.1"
+#define USERAGENT "YAHMS/0.2"
 #define YAHMS_SERVER "yahms.net"
 #define RESPONSETIMEOUT 30
 #define LOGGING
