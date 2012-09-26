@@ -41,8 +41,10 @@ FLASH_STRING(SUBMITTING_SAMPLES_TO,"Submitting samples to http://");
 FLASH_STRING(HTTP_SUBMIT_CONNECTION_FAILED,"HTTP Connection Failed\n");
 FLASH_STRING(HTTP_SUBMIT_REQUEST_FAILED,"HTTP Request Failed with: ");
 #endif
-FLASH_STRING(CONTENT_LENGTH,"Content-Length: ");
-FLASH_STRING(SAMPLE_CONTENT_TYPE,"Content-Type: application/x-www-form-urlencoded");
+//FLASH_STRING(CONTENT_LENGTH,"Content-Length: ");
+//FLASH_STRING(SAMPLE_CONTENT_TYPE,"Content-Type: application/x-www-form-urlencoded");
+#define CONTENT_LENGTH "Content-Length"
+#define SAMPLE_CONTENT_TYPE "Content-Type: application/x-www-form-urlencoded"
 
 unsigned long int lastSampleSubmission = 0;
 byte samplesBeforeSubmit = NUM_SAMPLES * 2;
@@ -207,17 +209,21 @@ void CheckAndSubmitSamples() {
   Serial.print(YAHMS_SERVER);
   Serial.println(configPath);
   #endif
+  http.beginRequest();
   if (http.post(YAHMS_SERVER, 80, configPath, USERAGENT) == 0)
   {
     // Request sent okay
-    #ifdef LOGGING
-    CONTENT_LENGTH.print(Serial);
-    Serial.println(contentLength);
-    #endif
-    CONTENT_LENGTH.print(http);
-    http.println(contentLength);
-    SAMPLE_CONTENT_TYPE.print(http);
-    http.println();
+//    #ifdef LOGGING
+//    CONTENT_LENGTH.print(Serial);
+//    Serial.println(contentLength);
+//    #endif
+//    CONTENT_LENGTH.print(http);
+//    http.println(contentLength);
+//    SAMPLE_CONTENT_TYPE.print(http);
+//    http.println();
+    http.sendHeader(CONTENT_LENGTH,contentLength);
+    http.sendHeader(SAMPLE_CONTENT_TYPE);
+    http.endRequest();
     
     for (int i = 0; i < NUM_ANALOG_PINS; ++i) {
       if (submitSamples[i] != -1) {
