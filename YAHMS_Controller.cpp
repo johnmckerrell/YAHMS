@@ -77,6 +77,7 @@ Serial.flush();
     char lineMode = '\0';
     while (confi < configSize+13) {
       c = EEPROM.read(confi);
+      ++confi;
       if (confi < 13) {
         // Ignore it
       } else if (isdigit(c)) {
@@ -120,14 +121,20 @@ Serial.flush();
             if (controlBlockValues[CB_LEN] > 0 && controlBlockValues[CB_PIN] >= 0) {
           
 
-              if (controlBlockValues[CB_PIN] != outputPins[i])
+              if (controlBlockValues[CB_PIN] != outputPins[i]) {
+                lineMode = '\0';
                 continue;
+              }
                 
-              if (controlBlockValues[CB_DAY] != -1 && controlBlockValues[CB_DAY] != day(t))
+              if (controlBlockValues[CB_DAY] != -1 && controlBlockValues[CB_DAY] != day(t)) {
+                lineMode = '\0';
                 continue;
+              }
               
-              if (controlBlockValues[CB_MONTH] != -1 && controlBlockValues[CB_MONTH] != month(t))
+              if (controlBlockValues[CB_MONTH] != -1 && controlBlockValues[CB_MONTH] != month(t)) {
+                lineMode = '\0';
                 continue;
+              }
               
               if (controlBlockValues[CB_WEEKDAY] != -1) {
                 if (controlBlockValues[CB_WEEKDAY] == 8 && (weekday(t) == 1 || weekday(t) == 7) ) {
@@ -136,6 +143,7 @@ Serial.flush();
                   // dow is valid - weekday
                 } else if (controlBlockValues[CB_WEEKDAY] != weekday(t)) {
                   // dow not valid, skip this one
+                  lineMode = '\0';
                   continue;
                 }
               }
@@ -186,7 +194,6 @@ Serial.flush();
           break;
         }
       }
-      ++confi;
     }
 
     if (pinState == -1)
