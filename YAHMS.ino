@@ -57,14 +57,14 @@ Check the last time we sent back a sample, if it’s been too long then send the
 
 #ifdef LOGGING
 
-FLASH_STRING(CONFIGURING_ETHERNET,"\n\n!!!\n\nConfiguring ethernet\n");
-FLASH_STRING(CONFIGURING_ETHERNET_FAILED,"Failed to configure Ethernet using DHCP\n");
-FLASH_STRING(SYNCING_TIME,"Syncing time\n");
-FLASH_STRING(SETUP_SAMPLER,"Setup sampler\n");
-FLASH_STRING(SETUP_CONTROLLER,"Setup controller\n");
+FLASH_STRING(CONFIGURING_ETHERNET,"\n\n!!!Ethernet:\n");
+FLASH_STRING(CONFIGURING_ETHERNET_FAILED,"Failed using DHCP\n");
+FLASH_STRING(SYNCING_TIME,"Time Sync\n");
+FLASH_STRING(SETUP_SAMPLER,"Sampler\n");
+FLASH_STRING(SETUP_CONTROLLER,"Controller\n");
 FLASH_STRING(CHECK_FOR_CONFIG,"Check for config\n");
 FLASH_STRING(TAKE_SAMPLES,"TakeSamples\n");
-FLASH_STRING(UPDATE_OUTPUT_PINS,"Update output pins\n");
+FLASH_STRING(UPDATE_OUTPUT_PINS,"Output pins:\n");
 FLASH_STRING(CHECK_AND_SUBMIT_SAMPLES,"CheckAndSubmitSamples\n");
 #endif
 

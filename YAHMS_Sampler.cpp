@@ -30,14 +30,14 @@ Check the last time we sent back a sample, if it’s been too long then send the
 #include <Flash.h>
 
 #ifdef LOGGING
-FLASH_STRING(HAVE_XBEE_PACKET_FROM_NODE,"Have xbee packet from node ");
-FLASH_STRING(XBEE_SAMPLES_FOR_NODE,"Xbee Samples for node ");
+FLASH_STRING(HAVE_XBEE_PACKET_FROM_NODE,"Xbee from ");
+FLASH_STRING(XBEE_SAMPLES_FOR_NODE,"Xbee Samples for ");
 FLASH_STRING(PROG_PIN," pin ");
-FLASH_STRING(SMOOTHED_OUT_TO," smoothed out to ");
-FLASH_STRING(NO_XBEE_PACKET,"No xbee packet\n");
+FLASH_STRING(SMOOTHED_OUT_TO," smoothed to ");
+FLASH_STRING(NO_XBEE_PACKET,"No xbee\n");
 FLASH_STRING(PROG_SAMPLE,"Sample ");
 FLASH_STRING(PROG_EQUALS," = ");
-FLASH_STRING(SUBMITTING_SAMPLES_TO,"Submitting samples to http://");
+FLASH_STRING(SUBMITTING_SAMPLES_TO,"Submitting to http://");
 FLASH_STRING(HTTP_SUBMIT_CONNECTION_FAILED,"HTTP Connection Failed\n");
 FLASH_STRING(HTTP_SUBMIT_REQUEST_FAILED,"HTTP Request Failed with: ");
 #endif
