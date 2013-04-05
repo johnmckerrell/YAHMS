@@ -100,7 +100,9 @@ void TakeSamples() {
       }
     }
   }
-  if (xbee.readPacket(5000)) {
+  if (!xbeeSerial) {
+    delay(5000);
+  } else if (xbee.readPacket(5000)) {
     XBeeResponse response = xbee.getResponse();
     if (response.getApiId() == RX_16_IO_RESPONSE) {
       Rx16IoSampleResponse ioSample;
