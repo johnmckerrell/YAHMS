@@ -69,8 +69,11 @@ Serial.flush();
     for (confi = 9; confi < 13; ++confi) {
       configSize = (256 * configSize) + EEPROM.read(confi);
     }
+    Serial.print("configSize");
+    Serial.println(configSize);
 
     int controlBlockValues[8];
+    int controlBlockValuesSize = 8;
     int intVal = -1;
     int intIndex = 0;
     byte c = '\0';
@@ -94,7 +97,7 @@ Serial.flush();
           memset(controlBlockValues,-1,sizeof(controlBlockValues));
         }
       } else if (c == '*' && lineMode == 'C') {
-          if (intIndex < sizeof(controlBlockValues)) {
+          if (intIndex < controlBlockValuesSize) {
             controlBlockValues[intIndex] = -1;
           }
           intVal = -1;
@@ -102,7 +105,7 @@ Serial.flush();
       } else if (intVal != -1) {
         switch(lineMode) {
           case 'C':
-            if (intIndex < sizeof(controlBlockValues)) {
+            if (intIndex < controlBlockValuesSize) {
               controlBlockValues[intIndex] = intVal;
             }
             break;
@@ -115,7 +118,7 @@ Serial.flush();
           case 'C':
             // Check that the length of the time block is greater than zero
             // and that the pin that's being turned on is zero or more
-                                 for (int f = 0, fl = sizeof(controlBlockValues); f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
+                                Serial.print("C:"); for (int f = 0, fl = controlBlockValuesSize; f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
                     Serial.println();
 
             if (controlBlockValues[CB_LEN] > 0 && controlBlockValues[CB_PIN] >= 0) {
@@ -154,7 +157,7 @@ Serial.flush();
                     pinState = controlBlockValues[CB_STATE] ? 1 : 0;
                     #ifdef LOGGING
                     ACTIVE_CONTROL_BLOCK.print(Serial);
-                     for (int f = 0, fl = sizeof(controlBlockValues); f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
+                     for (int f = 0, fl = controlBlockValuesSize; f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
                     Serial.println();
                     #endif
                   }
@@ -162,7 +165,7 @@ Serial.flush();
                   pinState = controlBlockValues[CB_STATE] ? 1 : 0;
                   #ifdef LOGGING
                   ACTIVE_CONTROL_BLOCK.print(Serial);
-                     for (int f = 0, fl = sizeof(controlBlockValues); f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
+                     for (int f = 0, fl = controlBlockValuesSize; f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
                   Serial.println();
                   #endif
                 }
@@ -171,7 +174,7 @@ Serial.flush();
                   pinState = controlBlockValues[CB_STATE] ? 1 : 0;
                   #ifdef LOGGING
                   ACTIVE_CONTROL_BLOCK.print(Serial);
-                     for (int f = 0, fl = sizeof(controlBlockValues); f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
+                     for (int f = 0, fl = controlBlockValuesSize; f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
                   Serial.println();
                   #endif
                 }
