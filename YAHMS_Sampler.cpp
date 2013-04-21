@@ -209,10 +209,12 @@ void CheckAndSubmitSamples() {
   #ifdef LOGGING
   SUBMITTING_SAMPLES_TO.print(Serial);
   Serial.print(YAHMS_SERVER);
+  Serial.print(":");
+  Serial.print(YAHMS_PORT);
   Serial.println(configPath);
   #endif
   http.beginRequest();
-  if (http.post(YAHMS_SERVER, 80, configPath, USERAGENT) == 0)
+  if (http.post(YAHMS_SERVER, YAHMS_PORT, configPath, USERAGENT) == 0)
   {
     // Request sent okay
 //    #ifdef LOGGING

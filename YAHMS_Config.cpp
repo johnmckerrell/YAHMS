@@ -124,9 +124,11 @@ void CheckAndUpdateConfig() {
       #ifdef LOGGING
       DOWNLOADING_CONFIG_FROM.print(Serial);
       Serial.print(YAHMS_SERVER);
+      Serial.print(":");
+      Serial.print(YAHMS_PORT);
       Serial.println(configPath);
       #endif
-      if (http.get(YAHMS_SERVER, 80, configPath, USERAGENT) == 0)
+      if (http.get(YAHMS_SERVER, YAHMS_PORT, configPath, USERAGENT) == 0)
       {
         // Request sent okay
         
