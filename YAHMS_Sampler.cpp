@@ -46,7 +46,8 @@ FLASH_STRING(HTTP_SUBMIT_REQUEST_FAILED,"HTTP Request Failed with: ");
 #define CONTENT_LENGTH "Content-Length"
 #define SAMPLE_CONTENT_TYPE "Content-Type: application/x-www-form-urlencoded"
 
-unsigned long int lastSampleSubmission = 0;
+time_t lastSampleSubmission = 0;
+time_t lastSample = 0;
 byte samplesBeforeSubmit = NUM_SAMPLES * 2;
 
 int analogSamples[NUM_ANALOG_PINS][NUM_SAMPLES];
@@ -72,6 +73,16 @@ void SetupSampler() {
 }
 
 void TakeSamples() {
+  time_t interval = (now() - lastSample);
+  if (interval < SAMPLE_FREQUENCY) {
+    return;
+  }
+  lastSample = now();
+  
+  if (samplesBeforeSubmit > 0) {
+    --samplesBeforeSubmit;
+  }
+  
   boolean loggedSample = false;
   for (int i = 0; i < NUM_ANALOG_PINS; ++i) {
     loggedSample = false;
@@ -101,7 +112,8 @@ void TakeSamples() {
     }
   }
   if (!xbeeSerial) {
-    delay(5000);
+    // Don't need to do anything any more
+//    delay(1000);
   } else if (xbee.readPacket(5000)) {
     XBeeResponse response = xbee.getResponse();
     if (response.getApiId() == RX_16_IO_RESPONSE) {
@@ -149,7 +161,6 @@ void TakeSamples() {
 
 void CheckAndSubmitSamples() {
   if (samplesBeforeSubmit > 0) {
-    --samplesBeforeSubmit;
     return;
   }
   if ((now() - lastSampleSubmission) < SAMPLE_SUBMIT_FREQUENCY) {
@@ -208,13 +219,13 @@ void CheckAndSubmitSamples() {
 
   #ifdef LOGGING
   SUBMITTING_SAMPLES_TO.print(Serial);
-  Serial.print(YAHMS_SERVER);
+  Serial.print(YAHMS_SUBMIT_SERVER);
   Serial.print(":");
   Serial.print(YAHMS_PORT);
   Serial.println(configPath);
   #endif
   http.beginRequest();
-  if (http.post(YAHMS_SERVER, YAHMS_PORT, configPath, USERAGENT) == 0)
+  if (http.post(YAHMS_SUBMIT_SERVER, YAHMS_PORT, configPath, USERAGENT) == 0)
   {
     // Request sent okay
 //    #ifdef LOGGING

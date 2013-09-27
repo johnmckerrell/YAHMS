@@ -11,6 +11,7 @@ FLASH_STRING(OUTPUT_PINS_SEP1,"] (");
 FLASH_STRING(OUTPUT_PINS_SEP2,") to ");
 FLASH_STRING(PROG_HIGH,"HIGH");
 FLASH_STRING(PROG_LOW,"LOW");
+FLASH_STRING(CONFIG_SIZE,"Config Size:");
 #endif
 
 #define CB_MINUTE   0
@@ -52,9 +53,19 @@ void CheckAndUpdateState() {
       Serial.println((int)stackptr,DEC);
 Serial.flush();
   // Add timezone/DST
+                Serial.print("time=");
+              Serial.print(hour(t));
+              Serial.print(":");
+              Serial.print(minute(t));
+              Serial.println();
   if (settings[TIME_OFFSET_MINS_SETTING] > 0) {
     t += settings[TIME_OFFSET_MINS_SETTING]*60;
   }
+                Serial.print("time=");
+              Serial.print(hour(t));
+              Serial.print(":");
+              Serial.print(minute(t));
+              Serial.println();
   int minsSinceMidnight = hour(t)*60+minute(t);
   for (int i = 0; i < NUM_OUTPUT_PINS; ++i) {
     //Serial.print("i=");
@@ -69,7 +80,7 @@ Serial.flush();
     for (confi = 9; confi < 13; ++confi) {
       configSize = (256 * configSize) + EEPROM.read(confi);
     }
-    Serial.print("configSize");
+    CONFIG_SIZE.print(Serial);
     Serial.println(configSize);
 
     int controlBlockValues[8];
@@ -120,21 +131,26 @@ Serial.flush();
             // and that the pin that's being turned on is zero or more
                                 Serial.print("C:"); for (int f = 0, fl = controlBlockValuesSize; f < fl; ++f) { Serial.print(controlBlockValues[f]); Serial.print(":"); }
                     Serial.println();
+                    Serial.println("a");
 
             if (controlBlockValues[CB_LEN] > 0 && controlBlockValues[CB_PIN] >= 0) {
+                    Serial.println("b");
           
 
               if (controlBlockValues[CB_PIN] != outputPins[i]) {
+                    Serial.println("c");
                 lineMode = '\0';
                 continue;
               }
                 
               if (controlBlockValues[CB_DAY] != -1 && controlBlockValues[CB_DAY] != day(t)) {
+                    Serial.println("d");
                 lineMode = '\0';
                 continue;
               }
               
               if (controlBlockValues[CB_MONTH] != -1 && controlBlockValues[CB_MONTH] != month(t)) {
+                    Serial.println("e");
                 lineMode = '\0';
                 continue;
               }
@@ -146,10 +162,12 @@ Serial.flush();
                   // dow is valid - weekday
                 } else if (controlBlockValues[CB_WEEKDAY] != weekday(t)) {
                   // dow not valid, skip this one
+                    Serial.println("f");
                   lineMode = '\0';
                   continue;
                 }
               }
+
               if (controlBlockValues[CB_HOUR] != -1) {
                 if (controlBlockValues[CB_MINUTE] != -1) {
                   int mins = (controlBlockValues[CB_HOUR]*60)+controlBlockValues[CB_MINUTE];

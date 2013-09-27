@@ -47,6 +47,7 @@ FLASH_STRING(ANALOG_PINS_ARE,"Analog pins: ");
 FLASH_STRING(INPUT_PINS_ARE,"Input pins: ");
 FLASH_STRING(OUTPUT_PINS_ARE,"Output pins: ");
 FLASH_STRING(CONTROL_BLOCKS,"Control Blocks:\n");
+FLASH_STRING(SUCCESSFUL_RESPONSE,"Successful Response");
 #endif
 
 boolean configPresent = false;
@@ -60,6 +61,208 @@ char xbeeRX = -1, xbeeTX = -1;
 
 byte settings[NUM_SETTINGS];
 
+EthernetClient configClient;
+HttpClient configHTTP(configClient);
+boolean connectionInProgress = false;
+
+char eepromHeader[5] = { 'Y', 'A', 'H', 'M', 'S' };
+
+
+void readEeprom() {
+  #ifdef LOGGING
+  VALID_EEPROM_CONTENTS.print(Serial);
+  #endif
+  configPresent = true;
+  unsigned long int configSize= 0;
+  for (int i = 9; i < 13; ++i) {
+    configSize = (256 * configSize) + EEPROM.read(i);
+  }
+  #ifdef LOGGING
+  CONFIG_SIZE_IS.print(Serial);
+  Serial.println(configSize);
+  #endif
+  
+  for(int i = 0; i < NUM_SETTINGS; ++i) {
+    settings[i] = 0;
+  }
+  for(int i = 0; i < NUM_ANALOG_PINS; ++i) {
+    analogPins[i] = -1;
+  }
+  for(int i = 0; i < NUM_INPUT_PINS; ++i) {
+    inputPins[i] = -1;
+  }
+  for(int i = 0; i < NUM_OUTPUT_PINS; ++i) {
+    outputPins[i] = -1;
+  }
+  
+  // Now parse the EEPROM contents line by line
+  int i = 0;
+  boolean xbeeChanged = false;
+  int intVal = -1;
+  unsigned long int uintVal = 0;
+  int intIndex = 0;
+  byte c = '\0';
+  char lineMode = '\0';
+  while (i < configSize+13) {
+    c = EEPROM.read(i);
+    if (i < 13) {
+      // Ignore it
+    } else if (isdigit(c)) {
+      if (intVal == -1)
+        intVal = 0;
+      intVal = (10*intVal) + (c - '0');
+      uintVal = (10*uintVal) + (c - '0');
+    } else if (lineMode == '\0') {
+      //Serial.print("lineMode=");
+      lineMode = c;
+      //Serial.println(lineMode);
+      intVal = -1;
+      uintVal = 0;
+      intIndex = 0;
+    } else if (c == '*' && lineMode == 'C') {
+        // Not important right now, control block specific
+        intVal = -1;
+        ++intIndex;
+    } else if (intVal != -1) {
+      switch(lineMode) {
+        case 'T':
+          if (intIndex == CONFIGTIME_INDEX) {
+            configTime = uintVal;
+          }
+          break;
+        case 'S':
+          if (intIndex < NUM_SETTINGS) {
+            settings[intIndex] = intVal;
+          }
+          break;
+        case 'A':
+          // Analog pins:
+          if (intIndex < NUM_ANALOG_PINS) {
+            analogPins[intIndex] = intVal;
+          }
+          break;
+        case 'I':
+          // Digital pins to set as input
+          if (intIndex < NUM_INPUT_PINS) {
+            inputPins[intIndex] = intVal;
+          }
+          break;
+        case 'O':
+          // Digital pins set as output
+          if (intIndex < NUM_OUTPUT_PINS) {
+            outputPins[intIndex] = intVal;
+          }
+          break;
+        case 'X':
+          // Pins to use for Xbee
+          if (intIndex == 0 && xbeeRX != intVal) {
+            xbeeChanged = true;
+            xbeeRX = intVal;
+          } else if (intIndex == 1 && xbeeTX != intVal) {
+            xbeeChanged = true;
+            xbeeTX = intVal;
+          }
+          break;
+        case 'C':
+          // Ignore control blocks for now
+          break;
+      }
+      intVal = -1;
+      ++intIndex;
+    }
+    if (c == '\n' || c == '\r' ) {
+      switch(lineMode) {
+        case 'S':
+          for(int i = intIndex; i < NUM_SETTINGS; ++i) {
+            settings[i] = 0;
+          }
+          break;
+        case 'A':
+          for(int i = intIndex; i < NUM_ANALOG_PINS; ++i) {
+            analogPins[i] = -1;
+          }
+          break;
+        case 'I':
+          for(int i = intIndex; i < NUM_INPUT_PINS; ++i) {
+            inputPins[i] = -1;
+          }
+          break;
+        case 'O':
+          for(int i = intIndex; i < NUM_OUTPUT_PINS; ++i) {
+            outputPins[i] = -1;
+          }
+          break;
+        case 'C':
+          // Ignore control blocks for now
+          break;
+      }
+      lineMode = '\0';
+    }
+    ++i;
+  }
+  // We don't need to check whether we're part-way through a number
+  // here because we add a new-line previously
+  
+
+  if (xbeeChanged) {
+    #ifdef LOGGING
+    XBEE_PINS_CHANGED_TO.print(Serial);
+    Serial.print(xbeeRX,DEC);
+    XBEE_PINS_TX.print(Serial);
+    Serial.println(xbeeTX,DEC);
+    #endif
+
+    SoftwareSerial *serial = new SoftwareSerial(xbeeRX,xbeeTX);        
+    if (xbeeSerial)
+      delete xbeeSerial;
+    xbeeSerial = serial;
+    xbee.setSerial(*serial);
+    xbee.begin(9600);
+  }
+  #ifdef LOGGING
+  ANALOG_PINS_ARE.print(Serial);
+  for(int i = 0; i < NUM_ANALOG_PINS; ++i) {
+    if (i > 0) {
+      COMMA.print(Serial);
+    }
+    Serial.print(analogPins[i],DEC);
+  }
+  Serial.println();
+  INPUT_PINS_ARE.print(Serial);
+  #endif
+  for(int i = 0; i < NUM_INPUT_PINS; ++i) {
+    #ifdef LOGGING
+    if (i > 0) {
+      COMMA.print(Serial);
+    }
+    Serial.print(inputPins[i],DEC);
+    #endif
+    if (inputPins[i]>0) {
+      pinMode(inputPins[i],INPUT);
+    }
+  }
+  #ifdef LOGGING
+  Serial.println();
+  OUTPUT_PINS_ARE.print(Serial);
+  #endif
+  for(int i = 0; i < NUM_OUTPUT_PINS; ++i) {
+    #ifdef LOGGING
+    if (i > 0) {
+      COMMA.print(Serial);
+    }
+    Serial.print(outputPins[i],DEC);
+    #endif
+    if (outputPins[i]>0) {
+      pinMode(outputPins[i],OUTPUT);
+      //currentPinState[i] = -1;
+    }
+  }
+  #ifdef LOGGING
+  Serial.println();
+  #endif
+  
+}
+
 void CheckAndUpdateConfig() {
   /*
   Do we have any config, or is the config too old?
@@ -71,8 +274,7 @@ void CheckAndUpdateConfig() {
 		+1 Hour - could simply be an extra On block
 		Not sure about advance blocks - perhaps also an On block, these and +1 hour could be a special type that you only have one of, so a later +1 or advance discards the previous
   */
-  if (!configPresent || (now()-configTime) > CONFIG_REQUEST_FREQUENCY) {
-    char eepromHeader[5] = { 'Y', 'A', 'H', 'M', 'S' };
+  if (!connectionInProgress) {// && (!configPresent || (now()-configTime) > CONFIG_REQUEST_FREQUENCY)) {
     boolean eepromValid = true, eepromRecent = true;
     byte i = 0;
     while (eepromValid) {
@@ -95,9 +297,15 @@ void CheckAndUpdateConfig() {
     } else {
       eepromRecent = false;
     }
+    // Force eepromRecent to false, let the server long-poll decide it
+    eepromRecent = false;
+    
+    if (eepromValid) {
+      // Make sure we've read the config initially at least
+      readEeprom();
+    }
+    
     // Download the config file from http://bubblino.com/<MAC Address>
-    EthernetClient c;
-    HttpClient http(c);
     if (!eepromRecent) {
       char configPath[31] = "/api/c/";
       //configPath[0] = '/api/c/';
@@ -123,286 +331,130 @@ void CheckAndUpdateConfig() {
   
       #ifdef LOGGING
       DOWNLOADING_CONFIG_FROM.print(Serial);
-      Serial.print(YAHMS_SERVER);
+      Serial.print(YAHMS_CONFIG_SERVER);
       Serial.print(":");
       Serial.print(YAHMS_PORT);
       Serial.println(configPath);
+      Serial.flush();
       #endif
-      if (http.get(YAHMS_SERVER, YAHMS_PORT, configPath, USERAGENT) == 0)
+      connectionInProgress = true;
+      if (!configHTTP.get(YAHMS_CONFIG_SERVER, YAHMS_PORT, configPath, USERAGENT) == 0)
       {
-        // Request sent okay
-        
-        // Look for the response, and specifically pull out the content-length header
-        unsigned long timeoutStart = millis();
-        char* current;
-  
-        int err = http.responseStatusCode();
-        if ((err >= 200) && (err < 300))
-        {
-          // We've got a successful response
-          // And we're not interested in any of the headers
-          err = http.skipResponseHeaders();
-          if (err >= 0)
-          {
-            // We're onto the body now
-  
-            // Store the config in EEPROM, in the format:
-            // 00-04: IP address of remote server (e.g. search.twitter.com)
-            // 05   : Length of following remote server name
-            // 06-  : remote server name (e.g. string "search.twitter.com")
-            //      : Length of following path, etc. in URL
-            //      : path, etc. for URL
-            unsigned long int i =0;
-            char c = '\0';
-            while ( (i < http.contentLength()) && (i < 512) && ( (millis() - timeoutStart) < (RESPONSETIMEOUT*1000) ))
-            {
-              if (http.available())
-              {
-                // We've got some data to read
-                c = http.read();
-                if (i < 5) {
-                  if (c != eepromHeader[i]) {
-                    break;
-                  }
-                  if (i == 4) {
-                    configTime = now();
-                    for( int j = 0; j < 5; ++j ) {
-                      EEPROM.write(j,eepromHeader[j]);
-                    }
-                    unsigned long outputTime = configTime;
-                    // Write out digits from right to left
-                    for (int j =3; j >= 0; --j)
-                    {
-                      unsigned long int timeDigit = outputTime & 0xFF;
-                      outputTime /= 256;
-                      EEPROM.write(j+5,timeDigit);
-                    }
-
-                  }
-                } else {
-                  // Store it in the EEPROM
-                  // Leaving a gap to store the size
-                  // But remember that i will be 5 when we start writing
-                  // the EEPROM start position needs to be 5 + 4 + 4
-                  EEPROM.write(8 + i, c);
-                  // And reset the timeout counter
-                  timeoutStart = millis();
-                }
-                ++i;
-              }
-              else
-              {
-                // We haven't got any data, so lets pause to allow some to arrive
-                delay(1000);
-              }
-            }
-            if (i > 0) {
-              // Add a new-line to make sure we parse all the numbers
-              EEPROM.write(13 + i, '\n');
-              ++i;
-              for (int j = 3; j >= 0; --j) {
-                unsigned long int sizeDigit = i & 0xFF;
-                i /= 256;
-                EEPROM.write(j+9,sizeDigit);
-              }
-            }
-            eepromValid = true;
-          }
-        }
-        else
-        {
-          // This isn't a successful response
-  #ifdef LOGGING
-          HTTP_REQUEST_FAILED.print(Serial);
-          Serial.println(err);
-  #endif
-        }
-        
-        http.stop();
-        c.stop();
-      }
-  #ifdef LOGGING
-      else
-      {
+        connectionInProgress = false;
+#ifdef LOGGING
         // else hope that the last config was okay
         HTTP_NOT_CONNECTED.print(Serial);
+#endif
       }
-  #endif
-    }
-    if (eepromValid) {
-      configTime = now();
-      #ifdef LOGGING
-      VALID_EEPROM_CONTENTS.print(Serial);
-      #endif
-      configPresent = true;
-      unsigned long int configSize= 0;
-      for (int i = 9; i < 13; ++i) {
-        configSize = (256 * configSize) + EEPROM.read(i);
-      }
-      #ifdef LOGGING
-      CONFIG_SIZE_IS.print(Serial);
-      Serial.println(configSize);
-      #endif
-      
-      // Now parse the EEPROM contents line by line
-      int i = 0;
-      boolean xbeeChanged = false;
-      int intVal = -1;
-      int intIndex = 0;
-      byte c = '\0';
-      char lineMode = '\0';
-      while (i < configSize+13) {
-        c = EEPROM.read(i);
-        if (i < 13) {
-          // Ignore it
-        } else if (isdigit(c)) {
-          if (intVal == -1)
-            intVal = 0;
-          intVal = (10*intVal) + (c - '0');
-        } else if (lineMode == '\0') {
-          //Serial.print("lineMode=");
-          lineMode = c;
-          //Serial.println(lineMode);
-          intVal = -1;
-          intIndex = 0;
-        } else if (c == '*' && lineMode == 'C') {
-            // Not important right now, control block specific
-            intVal = -1;
-            ++intIndex;
-        } else if (intVal != -1) {
-          switch(lineMode) {
-            case 'S':
-              if (intIndex < NUM_SETTINGS) {
-                settings[intIndex] = intVal;
-              }
-              break;
-            case 'A':
-              // Analog pins:
-              if (intIndex < NUM_ANALOG_PINS) {
-                analogPins[intIndex] = intVal;
-              }
-              break;
-            case 'I':
-              // Digital pins to set as input
-              if (intIndex < NUM_INPUT_PINS) {
-                inputPins[intIndex] = intVal;
-              }
-              break;
-            case 'O':
-              // Digital pins set as output
-              if (intIndex < NUM_OUTPUT_PINS) {
-                outputPins[intIndex] = intVal;
-              }
-              break;
-            case 'X':
-              // Pins to use for Xbee
-              if (intIndex == 0 && xbeeRX != intVal) {
-                xbeeChanged = true;
-                xbeeRX = intVal;
-              } else if (intIndex == 1 && xbeeTX != intVal) {
-                xbeeChanged = true;
-                xbeeTX = intVal;
-              }
-              break;
-            case 'C':
-              // Ignore control blocks for now
-              break;
-          }
-          intVal = -1;
-          ++intIndex;
-        }
-        if (c == '\n' || c == '\r' ) {
-          switch(lineMode) {
-            case 'S':
-              for(int i = intIndex; i < NUM_SETTINGS; ++i) {
-                settings[i] = 0;
-              }
-              break;
-            case 'A':
-              for(int i = intIndex; i < NUM_ANALOG_PINS; ++i) {
-                analogPins[i] = -1;
-              }
-              break;
-            case 'I':
-              for(int i = intIndex; i < NUM_INPUT_PINS; ++i) {
-                inputPins[i] = -1;
-              }
-              break;
-            case 'O':
-              for(int i = intIndex; i < NUM_OUTPUT_PINS; ++i) {
-                outputPins[i] = -1;
-              }
-              break;
-            case 'C':
-              // Ignore control blocks for now
-              break;
-          }
-          lineMode = '\0';
-        }
-        ++i;
-      }
-      // We don't need to check whether we're part-way through a number
-      // here because we add a new-line above
-      
-
-      if (xbeeChanged) {
-        #ifdef LOGGING
-        XBEE_PINS_CHANGED_TO.print(Serial);
-        Serial.print(xbeeRX,DEC);
-        XBEE_PINS_TX.print(Serial);
-        Serial.println(xbeeTX,DEC);
-        #endif
-
-        SoftwareSerial *serial = new SoftwareSerial(xbeeRX,xbeeTX);        
-        if (xbeeSerial)
-          delete xbeeSerial;
-        xbeeSerial = serial;
-        xbee.setSerial(*serial);
-        xbee.begin(9600);
-      }
-      #ifdef LOGGING
-      ANALOG_PINS_ARE.print(Serial);
-      for(int i = 0; i < NUM_ANALOG_PINS; ++i) {
-        if (i > 0) {
-          COMMA.print(Serial);
-        }
-        Serial.print(analogPins[i],DEC);
-      }
-      Serial.println();
-      INPUT_PINS_ARE.print(Serial);
-      #endif
-      for(int i = 0; i < NUM_INPUT_PINS; ++i) {
-        #ifdef LOGGING
-        if (i > 0) {
-          COMMA.print(Serial);
-        }
-        Serial.print(inputPins[i],DEC);
-        #endif
-        if (inputPins[i]>0) {
-          pinMode(inputPins[i],INPUT);
-        }
-      }
-      #ifdef LOGGING
-      Serial.println();
-      OUTPUT_PINS_ARE.print(Serial);
-      #endif
-      for(int i = 0; i < NUM_OUTPUT_PINS; ++i) {
-        #ifdef LOGGING
-        if (i > 0) {
-          COMMA.print(Serial);
-        }
-        Serial.print(outputPins[i],DEC);
-        #endif
-        if (outputPins[i]>0) {
-          pinMode(outputPins[i],OUTPUT);
-          //currentPinState[i] = -1;
-        }
-      }
-      #ifdef LOGGING
-      Serial.println();
-      #endif
-      
+      delay(1000);
     }
   }
-  
+  if (connectionInProgress) {
+    if (configHTTP.available()) {
+      // Request sent okay
+      
+      // Look for the response, and specifically pull out the content-length header
+      unsigned long timeoutStart = millis();
+      char* current;
+
+      int err = configHTTP.responseStatusCode();
+      if ((err >= 200) && (err < 300))
+      {
+        SUCCESSFUL_RESPONSE.print(Serial);
+        Serial.println(err);
+        // We've got a successful response
+        // And we're not interested in any of the headers
+        err = configHTTP.skipResponseHeaders();
+        if (err >= 0)
+        {
+          // We're onto the body now
+
+          // Store the config in EEPROM
+          unsigned long int i =0;
+          char c = '\0';
+          int contentLength = configHTTP.contentLength();
+          if (contentLength == 0 || contentLength > 512) {
+            contentLength = 512;
+          }
+          while ( i < contentLength && (configHTTP.connected()||configHTTP.available()) && ( (millis() - timeoutStart) < (RESPONSETIMEOUT*1000) ))
+          {
+            if (configHTTP.available())
+            {
+              // We've got some data to read
+              c = configHTTP.read();
+              Serial.print(c);
+              if (c=='!') {
+                break;
+              } else if (i < 5) {
+                if (c != eepromHeader[i]) {
+                  break;
+                }
+                if (i == 4) {
+                  for( int j = 0; j < 5; ++j ) {
+                    EEPROM.write(j,eepromHeader[j]);
+                  }
+                }
+              } else {
+                // Store it in the EEPROM
+                // Leaving a gap to store the size
+                // But remember that i will be 5 when we start writing
+                // the EEPROM start position needs to be 5 + 4 + 4
+                EEPROM.write(8 + i, c);
+                // And reset the timeout counter
+                timeoutStart = millis();
+              }
+              ++i;
+            }
+            else
+            {
+              // We haven't got any data, so lets pause to allow some to arrive
+              delay(1000);
+            }
+          }
+          if (i > 0) {
+            // Add a new-line to make sure we parse all the numbers
+            EEPROM.write(13 + i, '\n');
+            ++i;
+            // Store the size of the config into the beginning of EEPROM
+            for (int j = 3; j >= 0; --j) {
+              unsigned long int sizeDigit = i & 0xFF;
+              i /= 256;
+              EEPROM.write(j+9,sizeDigit);
+            }
+          }
+          readEeprom();
+          unsigned long outputTime = configTime;
+          // Write out digits from right to left
+          for (int j =3; j >= 0; --j)
+          {
+            unsigned long int timeDigit = outputTime & 0xFF;
+            outputTime /= 256;
+            EEPROM.write(j+5,timeDigit);
+          }
+
+
+        }
+      }
+      else
+      {
+        // This isn't a successful response
+#ifdef LOGGING
+        HTTP_REQUEST_FAILED.print(Serial);
+        Serial.println(err);
+#endif
+      }
+      
+      connectionInProgress = false;
+    } else {
+      if (!configClient.sendKeepAlive()) {
+        connectionInProgress = false;
+      }
+    }
+    // If we finished, or the keep alive failed, stop
+    if (!connectionInProgress) {
+      configHTTP.stop();
+      configClient.stop();
+    }
+  }
 }
+

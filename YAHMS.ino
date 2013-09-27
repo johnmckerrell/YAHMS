@@ -104,6 +104,12 @@ void setup() {
     for(;;)
       ;
   }
+  for (byte thisByte = 0; thisByte < 4; thisByte++) {
+    // print the value of each byte of the IP address:
+    Serial.print(Ethernet.localIP()[thisByte], DEC);
+    Serial.print("."); 
+  }
+  Serial.println();
   #ifdef LOGGING
   SYNCING_TIME.print(Serial);
   #endif
